@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cloud Exam Proctoring & Analytics (Enhanced)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --primary: #1e3a8a;
+      --primary-contrast: #ffffff;
+      --border: #e5e7eb;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --success: #10b981;
+      --info: #3b82f6;
+      --shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    html.dark {
+      --bg: #0f172a;
+      --surface: #111827;
+      --text: #e5e7eb;
+      --text-muted: #9ca3af;
+      --primary: #60a5fa;
+      --primary-contrast: #0b1220;
+      --border: #1f2937;
+      --shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--primary);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    button, .btn {
+      background: var(--primary);
+      color: var(--primary-contrast);
+      border: none;
+      padding: 0.45rem 0.7rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button.icon-btn {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.5rem;
+      font-size: 1rem;
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    button.success {
+      background: var(--success);
+      color: #052e1f;
+    }
+
+    /* Auth Screen */
+    #authScreen {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    #authScreen.visible {
+      display: flex;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      width: min(92vw, 380px);
+      box-shadow: var(--shadow);
+    }
+
+    .auth-card h2 {
+      margin-bottom: 0.75rem;
+      color: var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 0.75rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .auth-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    /* App layout */
+    #app {
+      display: none;
+    }
+
+    #app.visible {
+      display: block;
+    }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 53px;
+      z-index: 25;
+    }
+
+    nav button {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    nav button.active {
+      background: var(--primary);
+      color: var(--primary-contrast);
+      border-color: var(--primary);
+    }
+
+    main {
+      padding: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card h3 {
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-size: 1.05rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .col {
+      flex: 1 1 320px;
+    }
+
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #000;
+    }
+
+    video {
+      width: 100%;
+      display: block;
+    }
+
+    .overlay-status {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .log-list {
+      max-height: 250px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem;
+      background: var(--bg);
+      font-size: 0.85rem;
+    }
+
+    .log-item {
+      padding: 0.25rem 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.4rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.35rem;
+    }
+
+    .badge.warn { background: var(--warn); color: #111827; }
+    .badge.danger { background: var(--danger); color: #fff; }
+    .badge.success { background: var(--success); color: #052e1f; }
+    .badge.info { background: var(--info); color: #fff; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.4rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      color: var(--primary);
+    }
+
+    /* Toast notifications */
+    #toastContainer {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      z-index: 100;
+    }
+
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--info);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      box-shadow: var(--shadow);
+      font-size: 0.85rem;
+      min-width: 220px;
+      max-width: 320px;
+    }
+
+    .toast.success { border-left-color: var(--success); }
+    .toast.warn { border-left-color: var(--warn); }
+    .toast.danger { border-left-color: var(--danger); }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth Screen -->
+  <div id="authScreen">
+    <div class="auth-card">
+      <h2 id="authTitle">Login</h2>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input id="username" type="text" placeholder="Enter username" />
+      </div>
+      <div class="form-group">
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="instructor">Instructor</option>
+          <option value="student">Student</option>
+        </select>
+      </div>
+      <div class="auth-actions">
+        <button id="authSubmitBtn">Login</button>
+      </div>
+      <p id="authError" style="color:#ef4444; font-size:0.85rem; margin-top:0.5rem;"></p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="app">
+    <header>
+      <div class="brand">
+        🎓 Cloud Exam Proctoring & Analytics
+      </div>
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="icon-btn" title="Toggle theme">🌙</button>
+        <span id="userLabel" style="font-size:0.85rem; color:var(--text-muted);"></span>
+        <button id="logoutBtn" class="secondary">Logout</button>
+      </div>
+    </header>
+
+    <nav id="mainNav">
+      <!-- Dynamically populated based on role -->
+    </nav>
+
+    <main>
+      <!-- Dashboard -->
+      <section id="dashboard" class="section active">
+        <div class="card">
+          <h3>Welcome</h3>
+          <p id="welcomeText"></p>
+        </div>
+
+        <div class="card" id="instructorDashboardCard" style="display:none;">
+          <h3>Instructor Dashboard</h3>
+          <p>Manage exams, view sessions, and analyze proctoring data.</p>
+        </div>
+
+        <div class="card" id="studentDashboardCard" style="display:none;">
+          <h3>Student Dashboard</h3>
+          <p>View available exams and start your proctored sessions.</p>
+        </div>
+
+        <div class="card">
+          <h3>Your Exams</h3>
+          <div id="examsList"></div>
+        </div>
+      </section>
+
+      <!-- Create Exam (Instructor) -->
+      <section id="createExam" class="section">
+        <div class="card">
+          <h3>Create New Exam</h3>
+          <div class="form-group">
+            <label for="examTitle">Exam Title</label>
+            <input id="examTitle" type="text" placeholder="e.g., Midterm - Cloud Computing" />
+          </div>
+          <div class="form-group">
+            <label for="examDuration">Duration (minutes)</label>
+            <input id="examDuration" type="number" min="5" value="30" />
+          </div>
+          <div class="form-group">
+            <label for="examQuestions">Questions (one per line)</label>
+            <textarea id="examQuestions" rows="6" style="width:100%;padding:0.45rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);" placeholder="Q1. What is cloud computing?&#10;Q2. Explain IaaS, PaaS, SaaS."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="examSensitivity">Proctoring Sensitivity</label>
+            <select id="examSensitivity">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <button id="createExamBtn">Create Exam</button>
+        </div>
+      </section>
+
+      <!-- Manage Exams (Instructor) -->
+      <section id="manageExams" class="section">
+        <div class="card">
+          <h3>Manage Exams</h3>
+          <div id="instructorExamsList"></div>
+        </div>
+      </section>
+
+      <!-- Exam Sessions (Instructor) -->
+      <section id="examSessions" class="section">
+        <div class="card">
+          <h3>Exam Sessions</h3>
+          <div class="form-group">
+            <label for="sessionExamSelect">Select Exam</label>
+            <select id="sessionExamSelect"></select>
+          </div>
+          <button id="loadSessionsBtn">Load Sessions</button>
+        </div>
+
+        <div class="card">
+          <h3>Sessions Summary</h3>
+          <div style="overflow:auto;">
+            <table id="sessionsTable">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Started</th>
+                  <th>Ended</th>
+                  <th>Warnings</th>
+                  <th>Critical</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Take Exam (Student) -->
+      <section id="takeExam" class="section">
+        <div class="row">
+          <div class="col">
+            <div class="card">
+              <h3>Exam Session</h3>
+              <div class="form-group">
+                <label for="selectExam">Select Exam</label>
+                <select id="selectExam"></select>
+              </div>
+              <button id="startExamBtn">Start Exam</button>
+              <button id="stopExamBtn" class="danger" style="margin-left:0.5rem;" disabled>Stop Exam</button>
+            </div>
+
+            <div class="card">
+              <h3>Proctoring Status</h3>
+              <div class="video-wrap">
+                <video id="proctorVideo" autoplay playsinline muted></video>
+                <div class="overlay-status">
+                  <span id="proctorStatusText">Not started</span>
+                  <span id="timerText">00:00</span>
+                </div>
+              </div>
+              <p style="font-size:0.85rem; margin-top:0.5rem; color:var(--text-muted);">
+                Keep your face visible. Do not switch tabs or leave fullscreen.
+              </p>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="card">
+              <h3>Suspicious Activity Log</h3>
+              <div id="suspiciousLog" class="log-list"></div>
+            </div>
+
+            <div class="card">
+              <h3>Instructions</h3>
+              <ul style="padding-left:1.2rem; font-size:0.9rem; line-height:1.5;">
+                <li>Allow camera access when prompted.</li>
+                <li>Ensure good lighting and a clear view of your face.</li>
+                <li>Do not switch tabs or minimize the browser.</li>
+                <li>Stay in fullscreen during the exam.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analytics -->
+      <section id="analytics" class="section">
+        <div class="card">
+          <h3>Exam Analytics</h3>
+          <div class="form-group">
+            <label for="analyticsExam">Select Exam</label>
+            <select id="analyticsExam"></select>
+          </div>
+          <button id="loadAnalyticsBtn">Load Analytics</button>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <div class="card">
+              <h3>Violations Overview</h3>
+              <canvas id="violationsChart" height="200"></canvas>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card">
+              <h3>Timeline of Events</h3>
+              <div id="timelineLog" class="log-list" style="max-height:300px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Per-Student Breakdown</h3>
+          <div style="overflow:auto;">
+            <table id="studentBreakdownTable">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Warnings</th>
+                  <th>Critical</th>
+                  <th>Total Events</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Profile -->
+      <section id="profile" class="section">
+        <div class="card">
+          <h3>Profile</h3>
+          <div class="form-group">
+            <label>Username</label>
+            <div id="profileUsername" style="font-weight:600;"></div>
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <div id="profileRole" style="font-weight:600;"></div>
+          </div>
+          <div class="form-group">
+            <label for="profileDisplayName">Display Name</label>
+            <input id="profileDisplayName" type="text" placeholder="Your display name" />
+          </div>
+          <button id="saveProfileBtn">Save Profile</button>
+        </div>
+
+        <div class="card">
+          <h3>Data Management</h3>
+          <p style="font-size:0.9rem; margin-bottom:0.5rem; color:var(--text-muted);">
+            Clear all local demo data (exams, sessions, profile).
+          </p>
+          <button id="clearDataBtn" class="danger">Clear All Data</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Demo: Client-side proctoring with simulated cloud backend (localStorage).
+    </footer>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toastContainer"></div>
+
+  <script>
+    // =========================
+    // UTILS: Toasts
+    // =========================
+    const toastContainer = document.getElementById("toastContainer");
+
+    function showToast(message, type = "info") {
+      const toast = document.createElement("div");
+      toast.className = "toast " + type;
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 3500);
+    }
+
+    // =========================
+    // AUTH
+    // =========================
+    const authScreen = document.getElementById("authScreen");
+    const app = document.getElementById("app");
+    const authTitle = document.getElementById("authTitle");
+    const authSubmitBtn = document.getElementById("authSubmitBtn");
+    const usernameInput = document.getElementById("username");
+    const roleInput = document.getElementById("role");
+    const authError = document.getElementById("authError");
+    const userLabel = document.getElementById("userLabel");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    function getCurrentUser() {
+      const raw = localStorage.getItem("proctor_user");
+      return raw ? JSON.parse(raw) : null;
+    }
+
+    function setUser(user) {
+      if (!user) {
+        localStorage.removeItem("proctor_user");
+      } else {
+        localStorage.setItem("proctor_user", JSON.stringify(user));
+      }
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      const user = getCurrentUser();
+      if (user) {
+        authScreen.classList.remove("visible");
+        app.classList.add("visible");
+        userLabel.textContent = `${user.displayName || user.username} (${user.role})`;
+        initApp();
+      } else {
+        authScreen.classList.add("visible");
+        app.classList.remove("visible");
+        userLabel.textContent = "";
+      }
+    }
+
+    authSubmitBtn.addEventListener("click", () => {
+      const username = usernameInput.value.trim();
+      const role = roleInput.value;
+      authError.textContent = "";
+
+      if (!username) {
+        authError.textContent = "Please enter a username.";
+        return;
+      }
+
+      const user = {
+        username,
+        role,
+        displayName: username
+      };
+
+      // If user already exists, load displayName
+      const existingRaw = localStorage.getItem("proctor_user_profile_" + username + "_" + role);
+      if (existingRaw) {
+        const existing = JSON.parse(existingRaw);
+        user.displayName = existing.displayName || username;
+      } else {
+        saveUserProfile(user);
+      }
+
+      setUser(user);
+      showToast(`Welcome, ${user.displayName}!`, "success");
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      setUser(null);
+      window.location.reload();
+    });
+
+    // =========================
+    // THEME
+    // =========================
+    const themeToggleBtn = document.getElementById("themeToggleBtn");
+
+    function initTheme() {
+      const saved = localStorage.getItem("proctor_theme");
+      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (saved === "dark" || (!saved && systemDark)) {
+        document.documentElement.classList.add("dark");
+        themeToggleBtn.textContent = "☀️";
+      } else {
+        document.documentElement.classList.remove("dark");
+        themeToggleBtn.textContent = "🌙";
+      }
+    }
+
+    themeToggleBtn.addEventListener("click", () => {
+      const isDark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("proctor_theme", isDark ? "dark" : "light");
+      themeToggleBtn.textContent = isDark ? "☀️" : "🌙";
+      showToast(`Theme: ${isDark ? "Dark" : "Light"}`, "info");
+    });
+
+    // =========================
+    // NAVIGATION
+    // =========================
+    const mainNav = document.getElementById("mainNav");
+    const sections = document.querySelectorAll(".section");
+
+    function showSection(id) {
+      sections.forEach(sec => sec.classList.remove("active"));
+      document.getElementById(id).classList.add("active");
+
+      Array.from(mainNav.querySelectorAll("button")).forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.section === id);
+      });
+    }
+
+    function buildNav() {
+      const user = getCurrentUser();
+      mainNav.innerHTML = "";
+
+      const common = [
+        { id: "dashboard", label: "Dashboard" },
+        { id: "analytics", label: "Analytics" },
+        { id: "profile", label: "Profile" }
+      ];
+
+      const instructorOnly = [
+        { id: "createExam", label: "Create Exam" },
+        { id: "manageExams", label: "Manage Exams" },
+        { id: "examSessions", label: "Exam Sessions" }
+      ];
+
+      const studentOnly = [
+        { id: "takeExam", label: "Take Exam" }
+      ];
+
+      let items = [...common];
+      if (user.role === "instructor") {
+        items.push(...instructorOnly);
+      } else if (user.role === "student") {
+        items.push(...studentOnly);
+      }
+
+      items.forEach((item, idx) => {
+        const btn = document.createElement("button");
+        btn.dataset.section = item.id;
+        btn.textContent = item.label;
+        if (idx === 0) btn.classList.add("active");
+        btn.addEventListener("click", () => showSection(item.id));
+        mainNav.appendChild(btn);
+      });
+    }
+
+    // =========================
+    // DATA HELPERS
+    // =========================
+    function getExams() {
+      const raw = localStorage.getItem("proctor_exams");
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveExams(exams) {
+      localStorage.setItem("proctor_exams", JSON.stringify(exams));
+    }
+
+    function getExamSessions() {
+      const raw = localStorage.getItem("proctor_sessions");
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveExamSessions(sessions) {
+      localStorage.setItem("proctor_sessions", JSON.stringify(sessions));
+    }
+
+    function saveUserProfile(user) {
+      const key = "proctor_user_profile_" + user.username + "_" + user.role;
+      localStorage.setItem(key, JSON.stringify({
+        displayName: user.displayName
+      }));
+    }
+
+    function loadUserProfile(user) {
+      const key = "proctor_user_profile_" + user.username + "_" + user.role;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const data = JSON.parse(raw);
+        user.displayName = data.displayName || user.username;
+      } else {
+        user.displayName = user.username;
+        saveUserProfile(user);
+      }
+    }
+
+    // =========================
+    // APP INIT
+    // =========================
+    let currentUser = null;
+    let currentExamId = null;
+    let currentSession = null;
+    let proctorInterval = null;
+    let startTime = null;
+    let stream = null;
+
+    function initApp() {
+      currentUser = getCurrentUser();
+      loadUserProfile(currentUser);
+      // Update label again after loading profile
+      userLabel.textContent = `${currentUser.displayName} (${currentUser.role})`;
+
+      document.getElementById("welcomeText").textContent =
+        `Logged in as ${currentUser.displayName} (${currentUser.role}).`;
+
+      document.getElementById("instructorDashboardCard").style.display =
+        currentUser.role === "instructor" ? "block" : "none";
+      document.getElementById("studentDashboardCard").style.display =
+        currentUser.role === "student" ? "block" : "none";
+
+      buildNav();
+      renderExamsList();
+      populateExamDropdowns();
+      renderInstructorExams();
+      initProfile();
+    }
+
+    function renderExamsList() {
+      const exams = getExams();
+      const container = document.getElementById("examsList");
+      container.innerHTML = "";
+
+      if (exams.length === 0) {
+        container.innerHTML = "<p>No exams created yet.</p>";
+        return;
+      }
+
+      exams.forEach(exam => {
+        const div = document.createElement("div");
+        div.style.padding = "0.4rem 0";
+        div.style.borderBottom = "1px solid var(--border)";
+        div.textContent = `${exam.title} (${exam.duration} min) - by ${exam.instructor}`;
+        container.appendChild(div);
+      });
+    }
+
+    function populateExamDropdowns() {
+      const exams = getExams();
+      const selectExam = document.getElementById("selectExam");
+      const analyticsExam = document.getElementById("analyticsExam");
+      const sessionExamSelect = document.getElementById("sessionExamSelect");
+
+      [selectExam, analyticsExam, sessionExamSelect].forEach(sel => {
+        sel.innerHTML = "";
+      });
+
+      if (exams.length === 0) {
+        const opt = document.createElement("option");
+        opt.textContent = "No exams available";
+        [selectExam, analyticsExam, sessionExamSelect].forEach(sel => sel.appendChild(opt.cloneNode(true)));
+        return;
+      }
+
+      exams.forEach(exam => {
+        [selectExam, analyticsExam, sessionExamSelect].forEach(sel => {
+          const o = document.createElement("option");
+          o.value = exam.id;
+          o.textContent = exam.title;
+          sel.appendChild(o);
+        });
+      });
+    }
+
+    // =========================
+    // CREATE EXAM (Instructor)
+    // =========================
+    const createExamBtn = document.getElementById("createExamBtn");
+
+    createExamBtn.addEventListener("click", () => {
+      if (currentUser.role !== "instructor") {
+        showToast("Only instructors can create exams.", "danger");
+        return;
+      }
+
+      const title = document.getElementById("examTitle").value.trim();
+      const duration = parseInt(document.getElementById("examDuration").value || "30", 10);
+      const questionsText = document.getElementById("examQuestions").value.trim();
+      const sensitivity = document.getElementById("examSensitivity").value;
+
+      if (!title) {
+        showToast("Please enter an exam title.", "danger");
+        return;
+      }
+
+      const questions = questionsText
+        .split("\n")
+        .map(q => q.trim())
+        .filter(q => q.length > 0);
+
+      const exams = getExams();
+      const newExam = {
+        id: Date.now().toString(),
+        title,
+        duration,
+        questions,
+        sensitivity,
+        instructor: currentUser.username,
+        createdAt: new Date().toISOString()
+      };
+
+      exams.push(newExam);
+      saveExams(exams);
+
+      showToast("Exam created successfully!", "success");
+      document.getElementById("examTitle").value = "";
+      document.getElementById("examDuration").value = "30";
+      document.getElementById("examQuestions").value = "";
+
+      renderExamsList();
+      populateExamDropdowns();
+      renderInstructorExams();
+      showSection("dashboard");
+    });
+
+    // =========================
+    // MANAGE EXAMS (Instructor)
+    // =========================
+    function renderInstructorExams() {
+      if (currentUser.role !== "instructor") return;
+      const exams = getExams().filter(e => e.instructor === currentUser.username);
+      const container = document.getElementById("instructorExamsList");
+      container.innerHTML = "";
+
+      if (exams.length === 0) {
+        container.innerHTML = "<p>You have not created any exams yet.</p>";
+        return;
+      }
+
+      exams.forEach(exam => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.style.marginBottom = "0.75rem";
+
+        const h4 = document.createElement("h4");
+        h4.style.marginBottom = "0.4rem";
+        h4.style.color = "var(--primary)";
+        h4.textContent = exam.title;
+
+        const meta = document.createElement("p");
+        meta.style.fontSize = "0.85rem";
+        meta.style.color = "var(--text-muted)";
+        meta.textContent = `${exam.duration} min | Sensitivity: ${exam.sensitivity} | Created: ${new Date(exam.createdAt).toLocaleString()}`;
+
+        const actions = document.createElement("div");
+        actions.style.marginTop = "0.5rem";
+
+        const viewBtn = document.createElement("button");
+        viewBtn.textContent = "View Sessions";
+        viewBtn.addEventListener("click", () => {
+          document.getElementById("sessionExamSelect").value = exam.id;
+          showSection("examSessions");
+          loadSessionsForExam(exam.id);
+        });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete Exam";
+        deleteBtn.className = "danger";
+        deleteBtn.style.marginLeft = "0.5rem";
+        deleteBtn.addEventListener("click", () => {
+          if (!confirm(`Delete exam "${exam.title}"? This will not delete existing session logs.`)) return;
+          const exams = getExams();
+          const filtered = exams.filter(e => e.id !== exam.id);
+          saveExams(filtered);
+          showToast("Exam deleted.", "success");
+          renderInstructorExams();
+          renderExamsList();
+          populateExamDropdowns();
+        });
+
+        actions.appendChild(viewBtn);
+        actions.appendChild(deleteBtn);
+
+        card.appendChild(h4);
+        card.appendChild(meta);
+        card.appendChild(actions);
+        container.appendChild(card);
+      });
+    }
+
+    // =========================
+    // EXAM SESSIONS (Instructor)
+    // =========================
+    const loadSessionsBtn = document.getElementById("loadSessionsBtn");
+    const sessionExamSelect = document.getElementById("sessionExamSelect");
+    const sessionsTableBody = document.querySelector("#sessionsTable tbody");
+
+    loadSessionsBtn.addEventListener("click", () => {
+      const examId = sessionExamSelect.value;
+      if (!examId || examId === "No exams available") {
+        showToast("Please select a valid exam.", "danger");
+        return;
+      }
+      loadSessionsForExam(examId);
+    });
+
+    function loadSessionsForExam(examId) {
+      const sessions = getExamSessions().filter(s => s.examId === examId);
+      sessionsTableBody.innerHTML = "";
+
+      if (sessions.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 5;
+        td.textContent = "No sessions recorded yet.";
+        tr.appendChild(td);
+        sessionsTableBody.appendChild(tr);
+        return;
+      }
+
+      sessions.forEach(s => {
+        const warnCount = (s.events || []).filter(e => e.type === "warn").length;
+        const dangerCount = (s.events || []).filter(e => e.type === "danger").length;
+
+        const tr = document.createElement("tr");
+        const tdStudent = document.createElement("td");
+        tdStudent.textContent = s.student;
+
+        const tdStarted = document.createElement("td");
+        tdStarted.textContent = new Date(s.startedAt).toLocaleString();
+
+        const tdEnded = document.createElement("td");
+        tdEnded.textContent = s.endedAt ? new Date(s.endedAt).toLocaleString() : "In progress";
+
+        const tdWarn = document.createElement("td");
+        tdWarn.textContent = warnCount;
+
+        const tdCrit = document.createElement("td");
+        tdCrit.textContent = dangerCount;
+
+        tr.appendChild(tdStudent);
+        tr.appendChild(tdStarted);
+        tr.appendChild(tdEnded);
+        tr.appendChild(tdWarn);
+        tr.appendChild(tdCrit);
+
+        sessionsTableBody.appendChild(tr);
+      });
+
+      showToast("Sessions loaded.", "success");
+    }
+
+    // =========================
+    // TAKE EXAM (Student) + PROCTORING
+    // =========================
+    const proctorVideo = document.getElementById("proctorVideo");
+    const startExamBtn = document.getElementById("startExamBtn");
+    const stopExamBtn = document.getElementById("stopExamBtn");
+    const selectExam = document.getElementById("selectExam");
+    const proctorStatusText = document.getElementById("proctorStatusText");
+    const timerText = document.getElementById("timerText");
+    const suspiciousLog = document.getElementById("suspiciousLog");
+
+    function addLogEntry(type, message) {
+      const item = document.createElement("div");
+      item.className = "log-item";
+
+      const badge = document.createElement("span");
+      badge.className = "badge " + (type === "warn" ? "warn" : type === "danger" ? "danger" : type === "info" ? "info" : "success");
+      badge.textContent = type.toUpperCase();
+
+      const time = new Date().toLocaleTimeString();
+
+      item.appendChild(badge);
+      item.appendChild(document.createTextNode(`[${time}] ${message}`));
+
+      suspiciousLog.prepend(item);
+    }
+
+    async function startProctoring(examId) {
+      currentExamId = examId;
+      const exams = getExams();
+      const exam = exams.find(e => e.id === examId);
+      if (!exam) {
+        showToast("Exam not found.", "danger");
+        return;
+      }
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        proctorVideo.srcObject = stream;
+        await proctorVideo.play();
+      } catch (err) {
+        showToast("Camera access denied or unavailable.", "danger");
+        return;
+      }
+
+      // Try fullscreen
+      try {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        }
+      } catch (e) {
+        showToast("Fullscreen not available; proctoring will still work.", "warn");
+      }
+
+      startExamBtn.disabled = true;
+      stopExamBtn.disabled = false;
+      suspiciousLog.innerHTML = "";
+      addLogEntry("success", "Exam started. Proctoring active.");
+      showToast("Exam started. Good luck!", "success");
+
+      const sessions = getExamSessions();
+      currentSession = {
+        id: Date.now().toString(),
+        examId,
+        student: currentUser.username,
+        startedAt: new Date().toISOString(),
+        endedAt: null,
+        events: []
+      };
+      sessions.push(currentSession);
+      saveExamSessions(sessions);
+
+      startTime = Date.now();
+      updateTimer();
+
+      proctorInterval = setInterval(() => {
+        updateTimer();
+        runProctorChecks(exam);
+      }, 2000);
+    }
+
+    function stopProctoring() {
+      if (!currentSession) return;
+
+      clearInterval(proctorInterval);
+      proctorInterval = null;
+
+      const sessions = getExamSessions();
+      const idx = sessions.findIndex(s => s.id === currentSession.id);
+      if (idx !== -1) {
+        sessions[idx].endedAt = new Date().toISOString();
+        saveExamSessions(sessions);
+      }
+
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      proctorVideo.srcObject = null;
+
+      // Exit fullscreen if possible
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      } catch (e) {}
+
+      startExamBtn.disabled = false;
+      stopExamBtn.disabled = true;
+      proctorStatusText.textContent = "Exam stopped";
+      timerText.textContent = "00:00";
+
+      addLogEntry("success", "Exam ended. Session saved.");
+      showToast("Exam completed. Session saved.", "success");
+      currentSession = null;
+      currentExamId = null;
+    }
+
+    function updateTimer() {
+      if (!startTime) {
+        timerText.textContent = "00:00";
+        return;
+      }
+      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+      const m = Math.floor(elapsedSec / 60).toString().padStart(2, "0");
+      const s = (elapsedSec % 60).toString().padStart(2, "0");
+      timerText.textContent = `${m}:${s}`;
+    }
+
+    function runProctorChecks(exam) {
+      if (!currentSession) return;
+
+      const sensitivity = exam.sensitivity || "medium";
+      let warnProb = 0.05;
+      let dangerProb = 0.03;
+
+      if (sensitivity === "low") {
+        warnProb = 0.02;
+        dangerProb = 0.01;
+      } else if (sensitivity === "high") {
+        warnProb = 0.1;
+        dangerProb = 0.06;
+      }
+
+      const isPlaying = !proctorVideo.paused && !proctorVideo.ended;
+      if (!isPlaying) {
+        logEvent("danger", "Video feed paused or stopped.");
+        proctorStatusText.textContent = "⚠ Camera issue";
+      } else {
+        proctorStatusText.textContent = "✅ Proctoring active";
+      }
+
+      if (Math.random() < warnProb) {
+        logEvent("warn", "Possible multiple faces or movement detected (demo simulation).");
+      }
+      if (Math.random() < dangerProb) {
+        logEvent("warn", "No face detected for a few seconds (demo simulation).");
+      }
+    }
+
+    function logEvent(type, message) {
+      if (!currentSession) return;
+      currentSession.events.push({
+        timestamp: new Date().toISOString(),
+        type,
+        message
+      });
+      const sessions = getExamSessions();
+      const idx = sessions.findIndex(s => s.id === currentSession.id);
+      if (idx !== -1) {
+        sessions[idx] = currentSession;
+        saveExamSessions(sessions);
+      }
+      addLogEntry(type, message);
+    }
+
+    // Visibility / blur / fullscreen events
+    document.addEventListener("visibilitychange", () => {
+      if (!currentSession) return;
+      if (document.hidden) {
+        logEvent("danger", "User switched tab or minimized window.");
+        proctorStatusText.textContent = "⚠ Tab switch detected";
+        showToast("Tab switch detected!", "danger");
+      } else {
+        logEvent("warn", "User returned to exam tab.");
+        proctorStatusText.textContent = "✅ Proctoring active";
+      }
+    });
+
+    window.addEventListener("blur", () => {
+      if (!currentSession) return;
+      if (!document.hidden) {
+        logEvent("warn", "Window lost focus (possible alt-tab).");
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      if (!currentSession) return;
+      if (!document.fullscreenElement) {
+        logEvent("warn", "Exited fullscreen during exam.");
+        showToast("Please stay in fullscreen during the exam.", "warn");
+      }
+    });
+
+    startExamBtn.addEventListener("click", () => {
+      const examId = selectExam.value;
+      if (!examId || examId === "No exams available") {
+        showToast("Please select a valid exam.", "danger");
+        return;
+      }
+      if (!confirm("Start exam with proctoring enabled?")) return;
+      startProctoring(examId);
+    });
+
+    stopExamBtn.addEventListener("click", () => {
+      if (!confirm("Stop the exam now?")) return;
+      stopProctoring();
+    });
+
+    // =========================
+    // ANALYTICS
+    // =========================
+    const loadAnalyticsBtn = document.getElementById("loadAnalyticsBtn");
+    const analyticsExam = document.getElementById("analyticsExam");
+    const violationsChartCtx = document.getElementById("violationsChart").getContext("2d");
+    let violationsChart = null;
+    const studentBreakdownBody = document.querySelector("#studentBreakdownTable tbody");
+    const timelineLog = document.getElementById("timelineLog");
+
+    loadAnalyticsBtn.addEventListener("click", () => {
+      const examId = analyticsExam.value;
+      if (!examId || examId === "No exams available") {
+        showToast("Please select a valid exam.", "danger");
+        return;
+      }
+
+      const sessions = getExamSessions().filter(s => s.examId === examId);
+      timelineLog.innerHTML = "";
+      studentBreakdownBody.innerHTML = "";
+
+      let warnCount = 0;
+      let dangerCount = 0;
+      const allEvents = [];
+
+      const perStudent = {};
+
+      sessions.forEach(s => {
+        if (!perStudent[s.student]) {
+          perStudent[s.student] = { warn: 0, danger: 0, total: 0 };
+        }
+        (s.events || []).forEach(e => {
+          allEvents.push({
+            session: s.student,
+            ...e
+          });
+          if (e.type === "warn") {
+            warnCount++;
+            perStudent[s.student].warn++;
+          }
+          if (e.type === "danger") {
+            dangerCount++;
+            perStudent[s.student].danger++;
+          }
+          perStudent[s.student].total++;
+
+          const item = document.createElement("div");
+          item.className = "log-item";
+          const badge = document.createElement("span");
+          badge.className = "badge " + (e.type === "warn" ? "warn" : e.type === "danger" ? "danger" : "success");
+          badge.textContent = e.type.toUpperCase();
+          const time = new Date(e.timestamp).toLocaleString();
+          item.appendChild(badge);
+          item.appendChild(document.createTextNode(` [${s.student}] ${time} - ${e.message}`));
+          timelineLog.appendChild(item);
+        });
+      });
+
+      if (violationsChart) {
+        violationsChart.destroy();
+      }
+
+      violationsChart = new Chart(violationsChartCtx, {
+        type: "doughnut",
+        data: {
+          labels: ["Warnings", "Critical Violations", "Normal Events"],
+          datasets: [{
+            data: [
+              warnCount,
+              dangerCount,
+              Math.max(1, allEvents.length - warnCount - dangerCount)
+            ],
+            backgroundColor: ["#f59e0b", "#ef4444", "#10b981"]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "bottom" }
+          }
+        }
+      });
+
+      // Per-student breakdown
+      Object.keys(perStudent).forEach(student => {
+        const data = perStudent[student];
+        const tr = document.createElement("tr");
+        const tdName = document.createElement("td");
+        tdName.textContent = student;
+
+        const tdWarn = document.createElement("td");
+        tdWarn.textContent = data.warn;
+
+        const tdDanger = document.createElement("td");
+        tdDanger.textContent = data.danger;
+
+        const tdTotal = document.createElement("td");
+        tdTotal.textContent = data.total;
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdWarn);
+        tr.appendChild(tdDanger);
+        tr.appendChild(tdTotal);
+        studentBreakdownBody.appendChild(tr);
+      });
+
+      showToast("Analytics loaded.", "success");
+    });
+
+    // =========================
+    // PROFILE
+    // =========================
+    const profileUsername = document.getElementById("profileUsername");
+    const profileRole = document.getElementById("profileRole");
+    const profileDisplayName = document.getElementById("profileDisplayName");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+    const clearDataBtn = document.getElementById("clearDataBtn");
+
+    function initProfile() {
+      const user = getCurrentUser();
+      profileUsername.textContent = user.username;
+      profileRole.textContent = user.role;
+      profileDisplayName.value = user.displayName || user.username;
+    }
+
+    saveProfileBtn.addEventListener("click", () => {
+      const user = getCurrentUser();
+      const newDisplayName = profileDisplayName.value.trim() || user.username;
+      user.displayName = newDisplayName;
+      saveUserProfile(user);
+      setUser(user);
+      showToast("Profile saved.", "success");
+    });
+
+    clearDataBtn.addEventListener("click", () => {
+      if (!confirm("Clear ALL local demo data (exams, sessions, profiles)? This cannot be undone.")) return;
+      localStorage.clear();
+      showToast("All data cleared. Reloading...", "danger");
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    });
+
+    // =========================
+    // INIT
+    // =========================
+    initTheme();
+    updateAuthUI();
+  </script>
+</body>
+</html>
